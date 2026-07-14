@@ -8,6 +8,7 @@ import { connectToDatabase, closeDatabaseConnection } from "./lib/db";
 import { toNodeHandler } from "better-auth/node";
 import adminRoutes from "./routes/admin";
 import publicRoutes from "./routes/public";
+import userRoutes from "./routes/user";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -134,6 +135,9 @@ app.put("/api/user/password", async (req, res) => {
 
 // Public API routes
 app.use("/api", publicRoutes);
+
+// User routes (cart, orders)
+app.use("/api", userRoutes);
 
 // Admin routes
 app.use("/api/admin", adminRoutes);

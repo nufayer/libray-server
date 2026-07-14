@@ -13,6 +13,7 @@ const db_1 = require("./lib/db");
 const node_1 = require("better-auth/node");
 const admin_1 = __importDefault(require("./routes/admin"));
 const public_1 = __importDefault(require("./routes/public"));
+const user_1 = __importDefault(require("./routes/user"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 app.use((0, cors_1.default)({
@@ -125,6 +126,8 @@ app.put("/api/user/password", async (req, res) => {
 });
 // Public API routes
 app.use("/api", public_1.default);
+// User routes (cart, orders)
+app.use("/api", user_1.default);
 // Admin routes
 app.use("/api/admin", admin_1.default);
 // 404 handler

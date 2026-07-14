@@ -208,6 +208,25 @@ router.get("/orders", requireAdmin, async (_req, res) => {
         res.status(500).json({ error: "Failed to get orders" });
     }
 });
+router.patch("/orders/:id/status", requireAdmin, async (req, res) => {
+    try {
+        const { db } = await (0, db_1.connectToDatabase)();
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!status || !["approved", "rejected"].includes(status)) {
+            return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
+        }
+        const result = await db.collection("order").updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: { status, updatedAt: new Date() } });
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error("Update order status error:", error);
+        res.status(500).json({ error: "Failed to update order status" });
+    }
+});
 // ==================== USERS ====================
 router.get("/users", requireAdmin, async (_req, res) => {
     try {

@@ -104,7 +104,15 @@ router.get("/categories", async (_req: Request, res: Response) => {
   try {
     const { db } = await connectToDatabase();
     const categories = await db.collection("category").find().toArray();
-    res.json({ categories });
+
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (cat) => {
+        const bookCount = await db.collection("book").countDocuments({ category: cat.name });
+        return { ...cat, bookCount };
+      })
+    );
+
+    res.json({ categories: categoriesWithCount });
   } catch (error) {
     console.error("Get categories error:", error);
     res.status(500).json({ error: "Failed to get categories" });
