@@ -13,9 +13,25 @@ import userRoutes from "./routes/user";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim());
+
+let authReady = false;
+
+function isAuthInitialized() {
+  return authReady;
+}
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
@@ -27,7 +43,14 @@ app.use(cookieParser());
 app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
 // Better Auth handler for all /api/auth routes
-app.all("/api/auth/*", (req, res) => {
+app.all("/api/auth/*", async (req, res) => {
+  // Ensure auth is initialized (for Vercel cold starts)
+  if (!isAuthInitialized()) {
+    await connectToDatabase();
+    await initializeAuth();
+    authReady = true;
+  }
+
   const auth = getAuthInstance();
   const handler = toNodeHandler(auth.handler);
   return handler(req, res);
@@ -35,6 +58,10 @@ app.all("/api/auth/*", (req, res) => {
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.get("/", (_req, res) => {
+  res.json({ message: "Server is running", timestamp: new Date().toISOString() });
 });
 
 // Get current session
@@ -155,10 +182,15 @@ app.use(
   }
 );
 
+// For Vercel serverless
+export default app;
+
+// For local development
 async function startServer() {
   try {
     await connectToDatabase();
     await initializeAuth();
+    authReady = true;
 
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
@@ -170,14 +202,13 @@ async function startServer() {
   }
 }
 
-process.on("SIGTERM", async () => {
-  await closeDatabaseConnection();
-  process.exit(0);
-});
-
-process.on("SIGINT", async () => {
-  await closeDatabaseConnection();
-  process.exit(0);
-});
-
-startServer();
+if (process.env.VERCEL) {
+  // Vercel: initialize on cold start
+  (async () => {
+    await connectToDatabase();
+    await initializeAuth();
+    authReady = true;
+  })();
+} else {
+  startServer();
+}

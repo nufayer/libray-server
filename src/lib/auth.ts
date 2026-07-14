@@ -37,7 +37,7 @@ export async function initializeAuth() {
     },
     secret: process.env.BETTER_AUTH_SECRET || "",
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
-    trustedOrigins: [process.env.CLIENT_URL || "http://localhost:3000"],
+    trustedOrigins: (process.env.CLIENT_URL || "http://localhost:3000").split(",").map((o) => o.trim()),
     advanced: {
       database: {
         generateId: () => crypto.randomUUID(),

@@ -16,8 +16,22 @@ const public_1 = __importDefault(require("./routes/public"));
 const user_1 = __importDefault(require("./routes/user"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
+    .split(",")
+    .map((o) => o.trim());
+let authReady = false;
+function isAuthInitialized() {
+    return authReady;
+}
 app.use((0, cors_1.default)({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
@@ -26,13 +40,22 @@ app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use("/uploads", express_1.default.static(path_1.default.join(process.cwd(), "public", "uploads")));
 // Better Auth handler for all /api/auth routes
-app.all("/api/auth/*", (req, res) => {
+app.all("/api/auth/*", async (req, res) => {
+    // Ensure auth is initialized (for Vercel cold starts)
+    if (!isAuthInitialized()) {
+        await (0, db_1.connectToDatabase)();
+        await (0, auth_1.initializeAuth)();
+        authReady = true;
+    }
     const auth = (0, auth_1.getAuthInstance)();
     const handler = (0, node_1.toNodeHandler)(auth.handler);
     return handler(req, res);
 });
 app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+app.get("/", (_req, res) => {
+    res.json({ message: "Server is running", timestamp: new Date().toISOString() });
 });
 // Get current session
 app.get("/api/user/session", async (req, res) => {
@@ -139,10 +162,14 @@ app.use((err, _req, res, _next) => {
     console.error("Server error:", err);
     res.status(500).json({ error: "Internal server error" });
 });
+// For Vercel serverless
+exports.default = app;
+// For local development
 async function startServer() {
     try {
         await (0, db_1.connectToDatabase)();
         await (0, auth_1.initializeAuth)();
+        authReady = true;
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
             console.log(`Auth endpoint: http://localhost:${PORT}/api/auth`);
@@ -153,13 +180,15 @@ async function startServer() {
         process.exit(1);
     }
 }
-process.on("SIGTERM", async () => {
-    await (0, db_1.closeDatabaseConnection)();
-    process.exit(0);
-});
-process.on("SIGINT", async () => {
-    await (0, db_1.closeDatabaseConnection)();
-    process.exit(0);
-});
-startServer();
+if (process.env.VERCEL) {
+    // Vercel: initialize on cold start
+    (async () => {
+        await (0, db_1.connectToDatabase)();
+        await (0, auth_1.initializeAuth)();
+        authReady = true;
+    })();
+}
+else {
+    startServer();
+}
 //# sourceMappingURL=index.js.map
