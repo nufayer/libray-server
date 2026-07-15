@@ -12,12 +12,14 @@ export async function initializeAuth() {
 
   const options: BetterAuthOptions = {
     database: mongodbAdapter(db),
+
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
       minPasswordLength: 8,
       maxPasswordLength: 128,
     },
+
     user: {
       additionalFields: {
         role: {
@@ -27,6 +29,7 @@ export async function initializeAuth() {
         },
       },
     },
+
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
@@ -35,10 +38,25 @@ export async function initializeAuth() {
         maxAge: 60 * 5,
       },
     },
+
     secret: process.env.BETTER_AUTH_SECRET || "",
+
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
-    trustedOrigins: (process.env.CLIENT_URL || "http://localhost:3000").split(",").map((o) => o.trim()),
+
+    trustedOrigins: (
+      process.env.CLIENT_URL || "http://localhost:3000"
+    )
+      .split(",")
+      .map((o) => o.trim()),
+
     advanced: {
+      useSecureCookies: true,
+
+      defaultCookieAttributes: {
+        secure: true,
+        sameSite: "none",
+      },
+
       database: {
         generateId: () => crypto.randomUUID(),
       },
