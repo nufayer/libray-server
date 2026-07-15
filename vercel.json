@@ -1,23 +1,16 @@
 {
-  "buildCommand": "npm run build",
-  "headers": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/auth/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://libray-client.vercel.app,http://localhost:3000" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization,Cookie" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" }
-      ]
-    },
+      "src": "dist/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://libray-client.vercel.app,http://localhost:3000" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization,Cookie" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" }
-      ]
+      "src": "/(.*)",
+      "dest": "dist/index.js",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     }
   ]
 }
